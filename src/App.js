@@ -1,88 +1,36 @@
+import { useState } from "react";
+
 import "./App.scss";
-import { useState, useEffect, useRef } from "react";
-import axios from "axios";
-import FlashcardList from "./Quiz/FlashcardList";
+
+import Header from "./components/Header";
+import Footer from "./components/Footer";
+import QuizScreen from "./components/Quiz/QuizScreen";
+import JoinScreen from "./components/Quiz/JoinScreen";
 
 function App() {
-  const [flashcards, setFlashcards] = useState([]);
-  const [categories, setCategories] = useState([]);
-
-  const categoryElement = useRef();
-  const amountElement = useRef();
-
-  useEffect(() => {
-    axios.get("https://opentdb.com/api_category.php").then((response) => {
-      setCategories(response.data.trivia_categories);
-    });
-  }, []);
-
-  function decodeString(str) {
-    const textArea = document.createElement("textarea");
-    textArea.innerHTML = str;
-    return textArea.value;
-  }
-
-  function handleSubmit(e) {
-    e.preventDefault();
-    axios
-      .get("https://opentdb.com/api.php", {
-        params: {
-          amount: amountElement.current.value,
-          category: categoryElement.current.value,
-        },
-      })
-      .then((response) => {
-        setFlashcards(
-          response.data.results.map((questionItem, index) => {
-            const answer = decodeString(questionItem.correct_answer);
-            const options = [
-              ...questionItem.incorrect_answers.map((a) => decodeString(a)),
-              answer,
-            ];
-            return {
-              id: `${index}-${Date.now()}`,
-              question: decodeString(questionItem.question),
-              answer: answer,
-              options: options.sort(() => Math.random() - 0.5),
-            };
-          })
-        );
-      });
-  }
+  const [isQuizStarted, setIsQuizStarted] = useState(false);
+  const [quizList, setQuizList] = useState([]);
+  const generatedQuizList = (data) => {
+    setQuizList(data);
+    setIsQuizStarted(true);
+  };
 
   return (
-    <div className="App">
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="category">Category</label>
-          <select name="category" id="category" ref={categoryElement}>
-            {categories.map((category) => {
-              return (
-                <option value={category.id} key={category.id}>
-                  {category.name}
-                </option>
-              );
-            })}
-          </select>
-        </div>
+    <div id="app">
+      <Header />
+      <main>
+        <h1>Quiz Game</h1>
 
-        <div>
-          <label htmlFor="amount">Number of Questions</label>
-          <input
-            type="number"
-            id="amount"
-            min="1"
-            step="1"
-            defaultValue={10}
-            ref={amountElement}
+        {isQuizStarted ? (
+          <QuizScreen
+            retry={() => setIsQuizStarted(false)}
+            questionList={quizList}
           />
-        </div>
-
-        <div>
-          <button>Generate</button>
-        </div>
-      </form>
-      <FlashcardList flashcards={flashcards} />
+        ) : (
+          <JoinScreen questionList={generatedQuizList} />
+        )}
+      </main>
+      <Footer />
     </div>
   );
 }
